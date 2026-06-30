@@ -11,6 +11,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+bun-debug.log*
+
+# lockfiles (bun only)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 
 # environment variables

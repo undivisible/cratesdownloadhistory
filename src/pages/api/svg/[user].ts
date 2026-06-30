@@ -22,6 +22,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
       headers: {
         'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'public, max-age=3600',
+        'CDN-Cache-Control': 'max-age=3600',
       },
     });
   } catch {

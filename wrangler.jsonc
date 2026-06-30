@@ -15,5 +15,11 @@
 		{
 			"binding": "CACHE"
 		}
+	],
+	"routes": [
+		{
+			"pattern": "cratesdownloadhistory.undivisible.dev",
+			"custom_domain": true
+		}
 	]
 }

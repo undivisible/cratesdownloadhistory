@@ -5,14 +5,14 @@ Star-history-style download charts for crates.io users. Astro + TypeScript, depl
 ## dev
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ## deploy
 
 ```bash
-npm run deploy
+bun run deploy
 ```
 
 Requires a Cloudflare account (`wrangler login`).
@@ -40,8 +40,9 @@ Append query params to embed/svg URLs:
 
 | param | values | default |
 |-------|--------|---------|
-| `theme` | `light`, `dark` | `light` |
+| `theme` | `light`, `dark`, `nord`, `taiga`, `sepia`, `tokyo-night`, `dracula`, `catppuccin`, `one-dark`, `octocat` | `light` |
 | `date` | `mdy`, `mdy-long`, `dmy`, `dmy-long`, `ymd` | `mdy` |
+| `font` | `mono`, `sans`, `serif` | `mono` |
 | `crates` | `1`, `true` | off |
 
 Aliases: `dd/mm/yyyy`, `dd/mm/yy`, `mm/dd/yyyy`, `yyyy-mm-dd`, `iso`
@@ -49,5 +50,5 @@ Aliases: `dd/mm/yyyy`, `dd/mm/yy`, `mm/dd/yyyy`, `yyyy-mm-dd`, `iso`
 ## readme embed
 
 ```markdown
-[![crates.io download history](https://cratesdownloadhistory.undivisible.workers.dev/api/svg/undivisible?theme=dark&date=dmy-long&crates=1)](https://cratesdownloadhistory.undivisible.workers.dev/undivisible)
+[![crates.io download history](https://cratesdownloadhistory.undivisible.dev/api/svg/undivisible?theme=dark&date=dmy-long&crates=1)](https://crates.io/users/undivisible)
 ```

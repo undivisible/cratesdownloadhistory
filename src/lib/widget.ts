@@ -1,11 +1,17 @@
+import { THEME_DEFINITIONS } from './themes';
+
 export type DateFormat = 'mdy' | 'dmy' | 'ymd' | 'mdy-long' | 'dmy-long';
-export type Theme = 'light' | 'dark';
+export type Theme = (typeof THEME_DEFINITIONS)[number]['id'];
+export type FontFamily = 'mono' | 'sans' | 'serif';
 
 export interface WidgetOptions {
   theme: Theme;
   dateFormat: DateFormat;
   showCrates: boolean;
+  font: FontFamily;
 }
+
+const THEME_IDS = new Set(THEME_DEFINITIONS.map((t) => t.id));
 
 function parseBool(value: string | null): boolean {
   if (!value) return false;
@@ -27,26 +33,44 @@ const DATE_ALIASES: Record<string, DateFormat> = {
   'dmy-long': 'dmy-long',
 };
 
-export function parseWidgetOptions(searchParams: URLSearchParams): WidgetOptions {
-  const theme = searchParams.get('theme') === 'dark' ? 'dark' : 'light';
+const FONT_ALIASES: Record<string, FontFamily> = {
+  mono: 'mono',
+  monospace: 'mono',
+  sans: 'sans',
+  'sans-serif': 'sans',
+  serif: 'serif',
+};
 
-  const raw = (searchParams.get('date') ?? searchParams.get('dateFormat') ?? 'mdy')
+export function parseWidgetOptions(searchParams: URLSearchParams): WidgetOptions {
+  const rawTheme = (searchParams.get('theme') ?? 'light').toLowerCase().trim();
+  const theme = THEME_IDS.has(rawTheme) ? (rawTheme as Theme) : 'light';
+
+  const rawDate = (searchParams.get('date') ?? searchParams.get('dateFormat') ?? 'mdy')
     .toLowerCase()
     .trim();
-  const dateFormat = DATE_ALIASES[raw] ?? 'mdy';
+  const dateFormat = DATE_ALIASES[rawDate] ?? 'mdy';
+
+  const rawFont = (searchParams.get('font') ?? 'mono').toLowerCase().trim();
+  const font = FONT_ALIASES[rawFont] ?? 'mono';
 
   const showCrates = parseBool(searchParams.get('crates') ?? searchParams.get('showCrates'));
 
-  return { theme, dateFormat, showCrates };
+  return { theme, dateFormat, showCrates, font };
 }
 
-export function widgetQuery(options: WidgetOptions): string {
+export function buildWidgetQuery(options: WidgetOptions, cacheBust = false): string {
   const params = new URLSearchParams();
   if (options.theme !== 'light') params.set('theme', options.theme);
   if (options.dateFormat !== 'mdy') params.set('date', options.dateFormat);
+  if (options.font !== 'mono') params.set('font', options.font);
   if (options.showCrates) params.set('crates', '1');
+  if (cacheBust) params.set('t', String(Date.now()));
   const q = params.toString();
   return q ? `?${q}` : '';
+}
+
+export function widgetQuery(options: WidgetOptions): string {
+  return buildWidgetQuery(options, false);
 }
 
 export const DATE_FORMATS: Array<{ id: DateFormat; label: string }> = [
@@ -57,7 +81,16 @@ export const DATE_FORMATS: Array<{ id: DateFormat; label: string }> = [
   { id: 'ymd', label: 'YYYY-MM-DD' },
 ];
 
-export const THEMES: Array<{ id: Theme; label: string }> = [
-  { id: 'light', label: 'light' },
-  { id: 'dark', label: 'dark' },
+export const THEMES = THEME_DEFINITIONS.map((t) => ({ id: t.id, label: t.label }));
+
+export const FONTS: Array<{ id: FontFamily; label: string }> = [
+  { id: 'mono', label: 'mono' },
+  { id: 'sans', label: 'sans' },
+  { id: 'serif', label: 'serif' },
 ];
+
+export const FONT_STACKS: Record<FontFamily, string> = {
+  mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  sans: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+  serif: 'ui-serif, Georgia, Cambria, Times New Roman, Times, serif',
+};

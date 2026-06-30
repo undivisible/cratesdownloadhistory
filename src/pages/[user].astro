@@ -5,7 +5,7 @@ import Base from '../layouts/Base.astro';
 import { loadUserHistory } from '../lib/history';
 import { embedUrls } from '../lib/embed';
 import { loadOptions } from '../lib/runtime';
-import { DATE_FORMATS, THEMES, parseWidgetOptions } from '../lib/widget';
+import { DATE_FORMATS, FONTS, THEMES, parseWidgetOptions } from '../lib/widget';
 
 const { user: login } = Astro.params;
 if (!login) return Astro.redirect('/');
@@ -25,24 +25,24 @@ try {
 const embeds = history ? embedUrls(origin, login, widget) : null;
 ---
 
-<Base title={history ? `${history.user.login} — crates download history` : 'error'}>
+<Base title={history ? `${history.user.login} — crates download history` : 'error'} theme={widget.theme}>
   {
     error ? (
-      <div class="error">
-        <h1>error</h1>
+      <div class="border border-[var(--border)] p-4">
+        <h1 class="text-base font-600 mb-4 lowercase">error</h1>
         <p>{error}</p>
-        <p><a href="/">back</a></p>
+        <p class="mt-4"><a href="/">back</a></p>
       </div>
     ) : history && embeds && (
       <>
-        <h1>{history.user.login}</h1>
-        <p>
-          <span class="stat">{history.totalDownloads.toLocaleString()} downloads</span>
-          <span class="stat">{history.crateCount} crates</span>
+        <h1 class="text-base font-600 mb-4 lowercase">{history.user.login}</h1>
+        <p class="text-[var(--muted)] mb-4">
+          <span class="mr-6">{history.totalDownloads.toLocaleString()} downloads</span>
+          <span>{history.crateCount} crates</span>
         </p>
 
-        <form class="widget-options" id="widget-options">
-          <label>
+        <form class="flex flex-wrap gap-4 mb-4 items-end" id="widget-options">
+          <label class="flex flex-col gap-1">
             theme
             <select id="theme" name="theme">
               {THEMES.map((t) => (
@@ -50,7 +50,7 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
               ))}
             </select>
           </label>
-          <label>
+          <label class="flex flex-col gap-1">
             date
             <select id="date" name="date">
               {DATE_FORMATS.map((d) => (
@@ -58,39 +58,48 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
               ))}
             </select>
           </label>
-          <label class="checkbox">
+          <label class="flex flex-col gap-1">
+            font
+            <select id="font" name="font">
+              {FONTS.map((f) => (
+                <option value={f.id} selected={widget.font === f.id}>{f.label}</option>
+              ))}
+            </select>
+          </label>
+          <label class="flex items-center gap-2 pt-5">
             <input type="checkbox" id="crates" name="crates" checked={widget.showCrates} />
             show crates
           </label>
         </form>
 
-        <div class="chart">
-          <img id="preview" src={embeds.svgUrl} alt={`download history for ${login}`} width="800" height="320" />
+        <div class="border border-[var(--border)] my-6">
+          <img id="preview" src={embeds.svgUrl} alt={`download history for ${login}`} width="800" height="320" class="block w-full h-auto" />
         </div>
 
-        <section class="section">
-          <h2>embed — markdown</h2>
-          <pre class="mono" id="embed-md">{embeds.markdown}</pre>
+        <section class="mt-8">
+          <h2 class="text-base font-600 mb-4 lowercase">embed — markdown</h2>
+          <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-md">{embeds.markdown}</pre>
         </section>
 
-        <section class="section">
-          <h2>embed — html</h2>
-          <pre class="mono" id="embed-html">{embeds.html}</pre>
+        <section class="mt-8">
+          <h2 class="text-base font-600 mb-4 lowercase">embed — html</h2>
+          <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-html">{embeds.html}</pre>
         </section>
 
-        <section class="section">
-          <h2>embed — iframe</h2>
-          <pre class="mono" id="embed-iframe">{embeds.iframe}</pre>
+        <section class="mt-8">
+          <h2 class="text-base font-600 mb-4 lowercase">embed — iframe</h2>
+          <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-iframe">{embeds.iframe}</pre>
         </section>
 
-        <section class="section">
-          <h2>svg url</h2>
-          <pre class="mono" id="embed-svg">{embeds.svgUrl}</pre>
+        <section class="mt-8">
+          <h2 class="text-base font-600 mb-4 lowercase">svg url</h2>
+          <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-svg">{embeds.svgUrl}</pre>
         </section>
 
-        <script define:vars={{ origin, login, initialTheme: widget.theme, initialDate: widget.dateFormat, initialCrates: widget.showCrates }}>
+        <script define:vars={{ origin, login, initialTheme: widget.theme, initialDate: widget.dateFormat, initialFont: widget.font, initialCrates: widget.showCrates }}>
           const theme = document.getElementById('theme');
           const date = document.getElementById('date');
+          const font = document.getElementById('font');
           const crates = document.getElementById('crates');
           const preview = document.getElementById('preview');
           const md = document.getElementById('embed-md');
@@ -98,30 +107,47 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
           const iframe = document.getElementById('embed-iframe');
           const svg = document.getElementById('embed-svg');
 
-          function query(themeVal, dateVal, cratesVal) {
+          function query(themeVal, dateVal, fontVal, cratesVal, bust) {
             const params = new URLSearchParams();
             if (themeVal !== 'light') params.set('theme', themeVal);
             if (dateVal !== 'mdy') params.set('date', dateVal);
+            if (fontVal !== 'mono') params.set('font', fontVal);
             if (cratesVal) params.set('crates', '1');
+            if (bust) params.set('t', String(Date.now()));
             const q = params.toString();
             return q ? `?${q}` : '';
           }
 
+          function readOptions() {
+            return {
+              themeVal: theme instanceof HTMLSelectElement ? theme.value : initialTheme,
+              dateVal: date instanceof HTMLSelectElement ? date.value : initialDate,
+              fontVal: font instanceof HTMLSelectElement ? font.value : initialFont,
+              cratesVal: crates instanceof HTMLInputElement ? crates.checked : initialCrates,
+            };
+          }
+
+          function applySiteTheme(themeVal) {
+            document.documentElement.dataset.theme = themeVal;
+          }
+
           function update() {
-            const themeVal = theme instanceof HTMLSelectElement ? theme.value : initialTheme;
-            const dateVal = date instanceof HTMLSelectElement ? date.value : initialDate;
-            const cratesVal = crates instanceof HTMLInputElement ? crates.checked : initialCrates;
-            const q = query(themeVal, dateVal, cratesVal);
+            const { themeVal, dateVal, fontVal, cratesVal } = readOptions();
+            const q = query(themeVal, dateVal, fontVal, cratesVal, true);
+            const embedQ = query(themeVal, dateVal, fontVal, cratesVal, false);
             const user = encodeURIComponent(login);
             const pageUrl = `${origin}/${user}`;
-            const svgUrl = `${origin}/api/svg/${user}${q}`;
-            const embedUrl = `${origin}/embed/${user}${q}`;
+            const cratesUrl = `https://crates.io/users/${user}`;
+            const svgUrl = `${origin}/api/svg/${user}${embedQ}`;
+            const embedUrl = `${origin}/embed/${user}${embedQ}`;
+
+            applySiteTheme(themeVal);
 
             if (preview instanceof HTMLImageElement) {
-              preview.src = svgUrl;
+              preview.src = `${origin}/api/svg/${user}${q}`;
             }
-            if (md) md.textContent = `[![crates.io download history](${svgUrl})](${pageUrl})`;
-            if (html) html.textContent = `<a href="${pageUrl}"><img src="${svgUrl}" alt="crates.io download history for ${login}" /></a>`;
+            if (md) md.textContent = `[![crates.io download history](${svgUrl})](${cratesUrl})`;
+            if (html) html.textContent = `<a href="${cratesUrl}"><img src="${svgUrl}" alt="crates.io download history for ${login}" /></a>`;
             if (iframe) iframe.textContent = `<iframe src="${embedUrl}" width="820" height="360" frameborder="0"></iframe>`;
             if (svg) svg.textContent = svgUrl;
 
@@ -130,6 +156,8 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
             else url.searchParams.set('theme', themeVal);
             if (dateVal === 'mdy') url.searchParams.delete('date');
             else url.searchParams.set('date', dateVal);
+            if (fontVal === 'mono') url.searchParams.delete('font');
+            else url.searchParams.set('font', fontVal);
             if (cratesVal) url.searchParams.set('crates', '1');
             else url.searchParams.delete('crates');
             history.replaceState(null, '', url);
@@ -137,38 +165,10 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
 
           theme?.addEventListener('change', update);
           date?.addEventListener('change', update);
+          font?.addEventListener('change', update);
           crates?.addEventListener('change', update);
         </script>
       </>
     )
   }
 </Base>
-
-<style>
-  .widget-options {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin: 1rem 0;
-  }
-
-  .widget-options label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .widget-options label.checkbox {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.5rem;
-    padding-top: 1.25rem;
-  }
-
-  .chart img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border: 1px solid #000;
-  }
-</style>
