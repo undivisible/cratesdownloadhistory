@@ -1,8 +1,8 @@
 import type { WidgetOptions } from './widget';
-import { widgetQuery } from './widget';
+import { buildWidgetQuery } from './widget';
 
 export function embedUrls(origin: string, login: string, options: WidgetOptions) {
-  const q = widgetQuery(options);
+  const q = buildWidgetQuery(options, false);
   const user = encodeURIComponent(login);
   const pageUrl = `${origin}/${user}`;
   const cratesUrl = `https://crates.io/users/${user}`;

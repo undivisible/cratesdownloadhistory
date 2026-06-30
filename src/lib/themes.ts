@@ -83,10 +83,19 @@ export const THEME_DEFINITIONS: ThemeDefinition[] = [
   },
 ];
 
-export const CHART_THEMES = Object.fromEntries(
-  THEME_DEFINITIONS.map((t) => [t.id, t.chart]),
-) as Record<string, ChartPalette>;
-
 export function getTheme(id: string): ThemeDefinition {
   return THEME_DEFINITIONS.find((t) => t.id === id) ?? THEME_DEFINITIONS[0];
+}
+
+export function siteThemeCss(): string {
+  return THEME_DEFINITIONS.map((theme) => `
+[data-theme="${theme.id}"] {
+  --bg: ${theme.site.bg};
+  --fg: ${theme.site.fg};
+  --muted: ${theme.site.muted};
+  --border: ${theme.site.border};
+  --hover-bg: ${theme.site.hoverBg};
+  --hover-fg: ${theme.site.hoverFg};
+  color-scheme: ${theme.id === 'light' || theme.id === 'sepia' ? 'light' : 'dark'};
+}`).join('\n');
 }

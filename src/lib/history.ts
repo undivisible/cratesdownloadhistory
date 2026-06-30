@@ -6,7 +6,7 @@ import {
 } from './crates';
 import { aggregateDownloads } from './chart';
 import { getCachedHistory, setCachedHistory, slimHistory } from './cache';
-import type { UserDownloadHistory } from './types';
+import type { CachedUserHistory, UserDownloadHistory } from './types';
 
 export interface LoadOptions {
   kv?: KVNamespace;
@@ -14,6 +14,10 @@ export interface LoadOptions {
 }
 
 const inflight = new Map<string, Promise<UserDownloadHistory>>();
+
+function fromCached(cached: CachedUserHistory): UserDownloadHistory {
+  return { ...cached, crates: [] };
+}
 
 async function buildHistory(login: string): Promise<UserDownloadHistory> {
   const user = await fetchUser(login);
@@ -41,14 +45,14 @@ export async function loadUserHistory(
 ): Promise<UserDownloadHistory> {
   const key = login.toLowerCase();
   const cached = await getCachedHistory(key, options.kv);
-  if (cached && !cached.stale) return cached.history;
+  if (cached && !cached.stale) return fromCached(cached.history);
 
   if (cached?.stale && options.waitUntil) {
     options.waitUntil(refreshHistory(key, options.kv));
-    return cached.history;
+    return fromCached(cached.history);
   }
 
-  if (cached) return cached.history;
+  if (cached) return fromCached(cached.history);
 
   let pending = inflight.get(key);
   if (!pending) {

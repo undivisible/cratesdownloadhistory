@@ -32,3 +32,6 @@ export interface UserDownloadHistory {
   crates: CrateSummary[];
   points: DownloadPoint[];
 }
+
+/** KV payload — crate list omitted to keep entries small */
+export type CachedUserHistory = Omit<UserDownloadHistory, 'crates'>;

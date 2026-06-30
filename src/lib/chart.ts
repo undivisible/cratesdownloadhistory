@@ -1,4 +1,4 @@
-import { CHART_THEMES } from './themes';
+import { getTheme } from './themes';
 import { FONT_STACKS, type DateFormat, type FontFamily, type Theme, type WidgetOptions } from './widget';
 import type { DownloadPoint, UserDownloadHistory, VersionDownload } from './types';
 
@@ -73,7 +73,7 @@ export interface SvgOptions {
 }
 
 export function svgOptionsFromHistory(
-  history: UserDownloadHistory,
+  history: Pick<UserDownloadHistory, 'user' | 'totalDownloads' | 'crateCount'>,
   widget: WidgetOptions,
   width?: number,
   height?: number,
@@ -97,7 +97,7 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const mode = options.mode ?? 'cumulative';
-  const theme = CHART_THEMES[options.theme ?? 'light'] ?? CHART_THEMES.light;
+  const theme = getTheme(options.theme ?? 'light').chart;
   const dateFormat = options.dateFormat ?? 'mdy';
   const font = FONT_STACKS[options.font ?? 'mono'];
 

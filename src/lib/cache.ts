@@ -1,10 +1,10 @@
-import type { UserDownloadHistory } from './types';
+import type { CachedUserHistory } from './types';
 
 const TTL_SECONDS = 3600;
 const STALE_SECONDS = 300;
 
 interface CacheEntry {
-  history: UserDownloadHistory;
+  history: CachedUserHistory;
   fetchedAt: number;
 }
 
@@ -17,7 +17,7 @@ type CacheBinding = KVNamespace | undefined;
 export async function getCachedHistory(
   login: string,
   kv: CacheBinding,
-): Promise<{ history: UserDownloadHistory; stale: boolean } | null> {
+): Promise<{ history: CachedUserHistory; stale: boolean } | null> {
   if (!kv) return null;
 
   const raw = await kv.get(cacheKey(login), 'text');
@@ -35,7 +35,7 @@ export async function getCachedHistory(
 
 export async function setCachedHistory(
   login: string,
-  history: UserDownloadHistory,
+  history: CachedUserHistory,
   kv: CacheBinding,
 ): Promise<void> {
   if (!kv) return;
@@ -46,12 +46,16 @@ export async function setCachedHistory(
   });
 }
 
-export function slimHistory(history: UserDownloadHistory): UserDownloadHistory {
+export function slimHistory(history: {
+  user: CachedUserHistory['user'];
+  totalDownloads: number;
+  crateCount: number;
+  points: CachedUserHistory['points'];
+}): CachedUserHistory {
   return {
     user: history.user,
     totalDownloads: history.totalDownloads,
     crateCount: history.crateCount,
-    crates: [],
     points: history.points,
   };
 }

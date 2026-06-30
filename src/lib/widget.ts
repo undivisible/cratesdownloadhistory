@@ -69,8 +69,15 @@ export function buildWidgetQuery(options: WidgetOptions, cacheBust = false): str
   return q ? `?${q}` : '';
 }
 
-export function widgetQuery(options: WidgetOptions): string {
-  return buildWidgetQuery(options, false);
+export function applyWidgetOptionsToUrl(url: URL, options: WidgetOptions): void {
+  if (options.theme === 'light') url.searchParams.delete('theme');
+  else url.searchParams.set('theme', options.theme);
+  if (options.dateFormat === 'mdy') url.searchParams.delete('date');
+  else url.searchParams.set('date', options.dateFormat);
+  if (options.font === 'mono') url.searchParams.delete('font');
+  else url.searchParams.set('font', options.font);
+  if (options.showCrates) url.searchParams.set('crates', '1');
+  else url.searchParams.delete('crates');
 }
 
 export const DATE_FORMATS: Array<{ id: DateFormat; label: string }> = [
