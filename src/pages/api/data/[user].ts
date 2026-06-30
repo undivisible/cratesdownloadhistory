@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
+import { env } from 'cloudflare:workers';
 import { loadUserHistory } from '../../../lib/history';
-import { loadOptions } from '../../../lib/runtime';
 
 export const prerender = false;
 
@@ -14,7 +14,10 @@ export const GET: APIRoute = async ({ params, locals }) => {
   }
 
   try {
-    const history = await loadUserHistory(login, loadOptions(locals.cfContext));
+    const history = await loadUserHistory(login, {
+      kv: env.CACHE,
+      waitUntil: locals.cfContext ? (promise) => locals.cfContext!.waitUntil(promise) : undefined,
+    });
     return new Response(JSON.stringify(history), {
       headers: {
         'Content-Type': 'application/json',
