@@ -42,7 +42,13 @@ const embeds = history ? embedUrls(origin, canonicalLogin, widget) : null;
           <span>{history.crateCount} crates</span>
         </p>
 
-        <form class="flex flex-wrap gap-4 mb-4 items-end" id="widget-options">
+        <form
+          class="flex flex-wrap gap-4 mb-4 items-end"
+          id="widget-options"
+          data-origin={origin}
+          data-login={canonicalLogin}
+          data-widget={JSON.stringify(widget)}
+        >
           <label class="flex flex-col gap-1">
             theme
             <select id="theme" name="theme">
@@ -97,8 +103,15 @@ const embeds = history ? embedUrls(origin, canonicalLogin, widget) : null;
           <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-svg">{embeds.svgUrl}</pre>
         </section>
 
-        <script define:vars={{ origin, login: canonicalLogin, initialWidget: widget }}>
+        <script>
           import { readWidgetOptionsFromForm, updateWidgetPreview } from '../lib/widget-page';
+
+          const form = document.getElementById('widget-options');
+          const origin = form instanceof HTMLFormElement ? form.dataset.origin : '';
+          const login = form instanceof HTMLFormElement ? form.dataset.login : '';
+          const initialWidget = form instanceof HTMLFormElement
+            ? JSON.parse(form.dataset.widget ?? '{}')
+            : {};
 
           const theme = document.getElementById('theme');
           const date = document.getElementById('date');
