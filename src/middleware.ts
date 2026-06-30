@@ -44,7 +44,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (response.headers.get('Content-Type')?.includes('text/html')) {
     response.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-src 'self'",
+      "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-src 'self'",
     );
   }
   return response;
