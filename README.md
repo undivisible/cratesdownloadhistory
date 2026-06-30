@@ -34,8 +34,20 @@ refreshing in the background.
 | `/api/svg/:user` | SVG for README badges |
 | `/api/data/:user` | JSON download history |
 
+## widget options
+
+Append query params to embed/svg URLs:
+
+| param | values | default |
+|-------|--------|---------|
+| `theme` | `light`, `dark` | `light` |
+| `date` | `mdy`, `mdy-long`, `dmy`, `dmy-long`, `ymd` | `mdy` |
+| `crates` | `1`, `true` | off |
+
+Aliases: `dd/mm/yyyy`, `dd/mm/yy`, `mm/dd/yyyy`, `yyyy-mm-dd`, `iso`
+
 ## readme embed
 
 ```markdown
-[![crates.io download history](https://crates-download-history.undivisible.workers.dev/api/svg/alexcrichton)](https://crates-download-history.undivisible.workers.dev/alexcrichton)
+[![crates.io download history](https://cratesdownloadhistory.undivisible.workers.dev/api/svg/undivisible?theme=dark&date=dmy-long&crates=1)](https://cratesdownloadhistory.undivisible.workers.dev/undivisible)
 ```

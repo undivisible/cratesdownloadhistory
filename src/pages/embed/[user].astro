@@ -2,20 +2,20 @@
 export const prerender = false;
 
 import { loadUserHistory } from '../../lib/history';
-import { renderSvg } from '../../lib/chart';
+import { renderSvg, svgOptionsFromHistory } from '../../lib/chart';
 import { loadOptions } from '../../lib/runtime';
+import { parseWidgetOptions } from '../../lib/widget';
 
 const { user: login } = Astro.params;
 if (!login) return new Response('not found', { status: 404 });
 
+const widget = parseWidgetOptions(Astro.url.searchParams);
+const dark = widget.theme === 'dark';
+
 let svg = '';
 try {
   const history = await loadUserHistory(login, loadOptions(Astro.locals.cfContext));
-  svg = renderSvg(history.points, {
-    width: 800,
-    height: 300,
-    title: `${history.user.login} — ${history.totalDownloads.toLocaleString()} downloads`,
-  });
+  svg = renderSvg(history.points, svgOptionsFromHistory(history, widget, 800, 300));
 } catch {
   return new Response('not found', { status: 404 });
 }
@@ -30,7 +30,7 @@ try {
     <style>
       body {
         margin: 0;
-        background: #fff;
+        background: {dark ? '#000' : '#fff'};
       }
       svg {
         display: block;

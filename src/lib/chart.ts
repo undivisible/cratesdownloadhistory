@@ -1,4 +1,5 @@
-import type { DownloadPoint, VersionDownload } from './types';
+import type { DateFormat, Theme, WidgetOptions } from './widget';
+import type { DownloadPoint, UserDownloadHistory, VersionDownload } from './types';
 
 export function aggregateDownloads(
   histories: VersionDownload[][],
@@ -41,16 +42,62 @@ function formatCount(n: number): string {
   return String(n);
 }
 
-function formatDate(iso: string): string {
+export function formatChartDate(iso: string, dateFormat: DateFormat): string {
   const [y, m, d] = iso.split('-');
-  return `${m}/${d}/${y.slice(2)}`;
+  switch (dateFormat) {
+    case 'dmy':
+      return `${d}/${m}/${y.slice(2)}`;
+    case 'dmy-long':
+      return `${d}/${m}/${y}`;
+    case 'ymd':
+      return iso;
+    case 'mdy-long':
+      return `${m}/${d}/${y}`;
+    case 'mdy':
+    default:
+      return `${m}/${d}/${y.slice(2)}`;
+  }
 }
+
+const THEMES = {
+  light: {
+    bg: '#ffffff',
+    fg: '#000000',
+    grid: '#e5e5e5',
+  },
+  dark: {
+    bg: '#000000',
+    fg: '#ffffff',
+    grid: '#333333',
+  },
+} as const;
 
 export interface SvgOptions {
   width?: number;
   height?: number;
   title?: string;
   mode?: 'cumulative' | 'daily';
+  theme?: Theme;
+  dateFormat?: DateFormat;
+  crateCount?: number;
+  showCrates?: boolean;
+}
+
+export function svgOptionsFromHistory(
+  history: UserDownloadHistory,
+  widget: WidgetOptions,
+  width?: number,
+  height?: number,
+): SvgOptions {
+  return {
+    width,
+    height,
+    title: `${history.user.login} — ${history.totalDownloads.toLocaleString()} downloads`,
+    theme: widget.theme,
+    dateFormat: widget.dateFormat,
+    crateCount: history.crateCount,
+    showCrates: widget.showCrates,
+  };
 }
 
 export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): string {
@@ -60,6 +107,8 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const mode = options.mode ?? 'cumulative';
+  const theme = THEMES[options.theme ?? 'light'];
+  const dateFormat = options.dateFormat ?? 'mdy';
 
   const values = points.map((p) => (mode === 'cumulative' ? p.cumulative : p.daily));
   const min = mode === 'cumulative' ? Math.min(...values) : 0;
@@ -78,25 +127,30 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
     const value = min + (range * i) / yTicks;
     const yy = y(value);
     return `
-      <line x1="${pad.left}" y1="${yy.toFixed(1)}" x2="${width - pad.right}" y2="${yy.toFixed(1)}" stroke="#e5e5e5" stroke-width="1"/>
-      <text x="${pad.left - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" fill="#000" font-family="ui-monospace, monospace" font-size="11">${formatCount(Math.round(value))}</text>
+      <line x1="${pad.left}" y1="${yy.toFixed(1)}" x2="${width - pad.right}" y2="${yy.toFixed(1)}" stroke="${theme.grid}" stroke-width="1"/>
+      <text x="${pad.left - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" fill="${theme.fg}" font-family="ui-monospace, monospace" font-size="11">${formatCount(Math.round(value))}</text>
     `;
   }).join('');
 
   const first = points[0]?.date ?? '';
   const last = points.at(-1)?.date ?? '';
   const title = options.title ?? 'downloads';
+  const crateLabel =
+    options.showCrates && options.crateCount !== undefined
+      ? `${options.crateCount.toLocaleString()} crates`
+      : '';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${title}">
-  <rect width="100%" height="100%" fill="#fff"/>
-  <text x="${pad.left}" y="22" fill="#000" font-family="ui-monospace, monospace" font-size="13" font-weight="600">${escapeXml(title)}</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(crateLabel ? `${title} — ${crateLabel}` : title)}">
+  <rect width="100%" height="100%" fill="${theme.bg}"/>
+  <text x="${pad.left}" y="22" fill="${theme.fg}" font-family="ui-monospace, monospace" font-size="13" font-weight="600">${escapeXml(title)}</text>
+  ${crateLabel ? `<text x="${width - pad.right}" y="22" text-anchor="end" fill="${theme.fg}" font-family="ui-monospace, monospace" font-size="13" font-weight="600">${escapeXml(crateLabel)}</text>` : ''}
   ${yLabels}
-  <path d="${line}" fill="none" stroke="#000" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-  <line x1="${pad.left}" y1="${pad.top + plotH}" x2="${width - pad.right}" y2="${pad.top + plotH}" stroke="#000" stroke-width="1"/>
-  <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + plotH}" stroke="#000" stroke-width="1"/>
-  <text x="${pad.left}" y="${height - 14}" fill="#000" font-family="ui-monospace, monospace" font-size="11">${formatDate(first)}</text>
-  <text x="${width - pad.right}" y="${height - 14}" text-anchor="end" fill="#000" font-family="ui-monospace, monospace" font-size="11">${formatDate(last)}</text>
+  <path d="${line}" fill="none" stroke="${theme.fg}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <line x1="${pad.left}" y1="${pad.top + plotH}" x2="${width - pad.right}" y2="${pad.top + plotH}" stroke="${theme.fg}" stroke-width="1"/>
+  <line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${pad.top + plotH}" stroke="${theme.fg}" stroke-width="1"/>
+  <text x="${pad.left}" y="${height - 14}" fill="${theme.fg}" font-family="ui-monospace, monospace" font-size="11">${formatChartDate(first, dateFormat)}</text>
+  <text x="${width - pad.right}" y="${height - 14}" text-anchor="end" fill="${theme.fg}" font-family="ui-monospace, monospace" font-size="11">${formatChartDate(last, dateFormat)}</text>
 </svg>`;
 }
 
