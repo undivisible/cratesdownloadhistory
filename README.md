@@ -17,6 +17,13 @@ npm run deploy
 
 Requires a Cloudflare account (`wrangler login`).
 
+## performance
+
+Responses are cached in Cloudflare KV for 1 hour. Repeat requests are served
+from cache (~50ms). Cold fetches parallelize crate API calls (20 concurrent)
+and skip zero-download crates. Stale cache is served immediately while
+refreshing in the background.
+
 ## routes
 
 | path | description |
