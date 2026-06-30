@@ -4,7 +4,7 @@ export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { loadUserHistory } from '../lib/history';
 import { embedUrls } from '../lib/embed';
-import { loadOptions } from '../lib/runtime';
+import { env } from 'cloudflare:workers';
 import { DATE_FORMATS, FONTS, THEMES, parseWidgetOptions } from '../lib/widget';
 
 const { user: login } = Astro.params;
@@ -17,7 +17,12 @@ let history;
 let error: string | null = null;
 
 try {
-  history = await loadUserHistory(login, loadOptions(Astro.locals.cfContext));
+  history = await loadUserHistory(login, {
+    kv: env.CACHE,
+    waitUntil: Astro.locals.cfContext
+      ? (promise) => Astro.locals.cfContext!.waitUntil(promise)
+      : undefined,
+  });
 } catch (e) {
   error = e instanceof Error ? e.message : 'failed to load user';
 }
@@ -28,15 +33,15 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
 <Base title={history ? `${history.user.login} — crates download history` : 'error'} theme={widget.theme}>
   {
     error ? (
-      <div class="border border-[var(--border)] p-4">
-        <h1 class="text-base font-600 mb-4 lowercase">error</h1>
+      <div class="border p-4">
+        <h1>error</h1>
         <p>{error}</p>
         <p class="mt-4"><a href="/">back</a></p>
       </div>
     ) : history && embeds && (
       <>
-        <h1 class="text-base font-600 mb-4 lowercase">{history.user.login}</h1>
-        <p class="text-[var(--muted)] mb-4">
+        <h1>{history.user.login}</h1>
+        <p class="muted mb-4">
           <span class="mr-6">{history.totalDownloads.toLocaleString()} downloads</span>
           <span>{history.crateCount} crates</span>
         </p>
@@ -72,95 +77,48 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
           </label>
         </form>
 
-        <div class="border border-[var(--border)] my-6">
+        <div class="border my-6">
           <img id="preview" src={embeds.svgUrl} alt={`download history for ${login}`} width="800" height="320" class="block w-full h-auto" />
         </div>
 
         <section class="mt-8">
-          <h2 class="text-base font-600 mb-4 lowercase">embed — markdown</h2>
+          <h2>embed — markdown</h2>
           <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-md">{embeds.markdown}</pre>
         </section>
 
         <section class="mt-8">
-          <h2 class="text-base font-600 mb-4 lowercase">embed — html</h2>
+          <h2>embed — html</h2>
           <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-html">{embeds.html}</pre>
         </section>
 
         <section class="mt-8">
-          <h2 class="text-base font-600 mb-4 lowercase">embed — iframe</h2>
+          <h2>embed — iframe</h2>
           <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-iframe">{embeds.iframe}</pre>
         </section>
 
         <section class="mt-8">
-          <h2 class="text-base font-600 mb-4 lowercase">svg url</h2>
+          <h2>svg url</h2>
           <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-svg">{embeds.svgUrl}</pre>
         </section>
 
-        <script define:vars={{ origin, login, initialTheme: widget.theme, initialDate: widget.dateFormat, initialFont: widget.font, initialCrates: widget.showCrates }}>
+        <script define:vars={{ origin, login, initialWidget: widget }}>
+          import { readWidgetOptionsFromForm, updateWidgetPreview } from '../lib/widget-page';
+
           const theme = document.getElementById('theme');
           const date = document.getElementById('date');
           const font = document.getElementById('font');
           const crates = document.getElementById('crates');
-          const preview = document.getElementById('preview');
-          const md = document.getElementById('embed-md');
-          const html = document.getElementById('embed-html');
-          const iframe = document.getElementById('embed-iframe');
-          const svg = document.getElementById('embed-svg');
-
-          function query(themeVal, dateVal, fontVal, cratesVal, bust) {
-            const params = new URLSearchParams();
-            if (themeVal !== 'light') params.set('theme', themeVal);
-            if (dateVal !== 'mdy') params.set('date', dateVal);
-            if (fontVal !== 'mono') params.set('font', fontVal);
-            if (cratesVal) params.set('crates', '1');
-            if (bust) params.set('t', String(Date.now()));
-            const q = params.toString();
-            return q ? `?${q}` : '';
-          }
-
-          function readOptions() {
-            return {
-              themeVal: theme instanceof HTMLSelectElement ? theme.value : initialTheme,
-              dateVal: date instanceof HTMLSelectElement ? date.value : initialDate,
-              fontVal: font instanceof HTMLSelectElement ? font.value : initialFont,
-              cratesVal: crates instanceof HTMLInputElement ? crates.checked : initialCrates,
-            };
-          }
-
-          function applySiteTheme(themeVal) {
-            document.documentElement.dataset.theme = themeVal;
-          }
+          const els = {
+            preview: document.getElementById('preview'),
+            md: document.getElementById('embed-md'),
+            html: document.getElementById('embed-html'),
+            iframe: document.getElementById('embed-iframe'),
+            svg: document.getElementById('embed-svg'),
+          };
 
           function update() {
-            const { themeVal, dateVal, fontVal, cratesVal } = readOptions();
-            const q = query(themeVal, dateVal, fontVal, cratesVal, true);
-            const embedQ = query(themeVal, dateVal, fontVal, cratesVal, false);
-            const user = encodeURIComponent(login);
-            const pageUrl = `${origin}/${user}`;
-            const cratesUrl = `https://crates.io/users/${user}`;
-            const svgUrl = `${origin}/api/svg/${user}${embedQ}`;
-            const embedUrl = `${origin}/embed/${user}${embedQ}`;
-
-            applySiteTheme(themeVal);
-
-            if (preview instanceof HTMLImageElement) {
-              preview.src = `${origin}/api/svg/${user}${q}`;
-            }
-            if (md) md.textContent = `[![crates.io download history](${svgUrl})](${cratesUrl})`;
-            if (html) html.textContent = `<a href="${cratesUrl}"><img src="${svgUrl}" alt="crates.io download history for ${login}" /></a>`;
-            if (iframe) iframe.textContent = `<iframe src="${embedUrl}" width="820" height="360" frameborder="0"></iframe>`;
-            if (svg) svg.textContent = svgUrl;
-
-            const url = new URL(window.location.href);
-            if (themeVal === 'light') url.searchParams.delete('theme');
-            else url.searchParams.set('theme', themeVal);
-            if (dateVal === 'mdy') url.searchParams.delete('date');
-            else url.searchParams.set('date', dateVal);
-            if (fontVal === 'mono') url.searchParams.delete('font');
-            else url.searchParams.set('font', fontVal);
-            if (cratesVal) url.searchParams.set('crates', '1');
-            else url.searchParams.delete('crates');
-            history.replaceState(null, '', url);
+            const options = readWidgetOptionsFromForm(theme, date, font, crates, initialWidget);
+            updateWidgetPreview(origin, login, options, els);
           }
 
           theme?.addEventListener('change', update);
