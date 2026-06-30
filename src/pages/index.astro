@@ -3,15 +3,15 @@ import Base from '../layouts/Base.astro';
 ---
 
 <Base title="crates download history">
-  <h1 class="text-base font-600 mb-4 lowercase">crates download history</h1>
-  <p class="text-[var(--muted)] mb-6">
+  <h1>crates download history</h1>
+  <p class="muted mb-6">
     total downloads over time for a crates.io user —&nbsp;<a href="https://github.com/undivisible/cratesdownloadhistory">github</a>
   </p>
 
   <form class="flex flex-wrap gap-2 items-end" id="search">
     <label class="flex flex-col gap-1">
       crates.io user
-      <input id="user" name="user" type="text" placeholder="undivisible" required class="min-w-200px" />
+      <input id="user" name="user" type="text" placeholder="undivisible" required class="min-w-200" />
     </label>
     <button type="submit">view</button>
   </form>

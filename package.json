@@ -18,10 +18,5 @@
     "@astrojs/cloudflare": "^14.0.1",
     "astro": "^7.0.3",
     "wrangler": "^4.105.0"
-  },
-  "devDependencies": {
-    "@unocss/astro": "^66.7.4",
-    "@unocss/preset-wind3": "^66.7.4",
-    "unocss": "^66.7.4"
   }
 }
