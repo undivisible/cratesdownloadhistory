@@ -21,8 +21,10 @@ Requires a Cloudflare account (`wrangler login`).
 
 Responses are cached in Cloudflare KV for 1 hour. Repeat requests are served
 from cache (~50ms). Cold fetches parallelize crate API calls (20 concurrent)
-and skip zero-download crates. Stale cache is served immediately while
-refreshing in the background.
+and skip zero-download crates. Chart series use at most the top 200 crates by
+download count. Stale cache is served immediately while refreshing in the
+background. Edge rate limit: 60 requests/minute per IP on user, API, and embed
+routes (KV counters, same `CACHE` namespace).
 
 ## routes
 

@@ -3,8 +3,8 @@ export const prerender = false;
 
 import { getTheme } from '../../lib/themes';
 import { loadUserHistory } from '../../lib/history';
+import { historyLoadOptions } from '../../lib/request';
 import { renderSvg, svgOptionsFromHistory } from '../../lib/chart';
-import { env } from 'cloudflare:workers';
 import { parseWidgetOptions } from '../../lib/widget';
 
 const { user: login } = Astro.params;
@@ -14,13 +14,10 @@ const widget = parseWidgetOptions(Astro.url.searchParams);
 const palette = getTheme(widget.theme).chart;
 
 let svg = '';
+let pageLogin = login;
 try {
-  const history = await loadUserHistory(login, {
-    kv: env.CACHE,
-    waitUntil: Astro.locals.cfContext
-      ? (promise) => Astro.locals.cfContext!.waitUntil(promise)
-      : undefined,
-  });
+  const history = await loadUserHistory(login, historyLoadOptions(Astro.locals));
+  pageLogin = history.user.login;
   svg = renderSvg(history.points, svgOptionsFromHistory(history, widget, 800, 300));
 } catch {
   return new Response('not found', { status: 404 });
@@ -32,7 +29,7 @@ try {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{login}</title>
+    <title>{pageLogin}</title>
     <style>
       body {
         margin: 0;

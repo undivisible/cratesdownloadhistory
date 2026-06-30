@@ -1,3 +1,4 @@
+import { escapeXml } from './escape';
 import { getTheme } from './themes';
 import { FONT_STACKS, type DateFormat, type FontFamily, type Theme, type WidgetOptions } from './widget';
 import type { DownloadPoint, UserDownloadHistory, VersionDownload } from './types';
@@ -143,12 +144,4 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
   <text x="${pad.left}" y="${height - 14}" fill="${theme.fg}" font-family="${font}" font-size="11">${formatChartDate(first, dateFormat)}</text>
   <text x="${width - pad.right}" y="${height - 14}" text-anchor="end" fill="${theme.fg}" font-family="${font}" font-size="11">${formatChartDate(last, dateFormat)}</text>
 </svg>`;
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
 }

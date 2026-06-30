@@ -4,7 +4,7 @@ export const prerender = false;
 import Base from '../layouts/Base.astro';
 import { loadUserHistory } from '../lib/history';
 import { embedUrls } from '../lib/embed';
-import { env } from 'cloudflare:workers';
+import { historyLoadOptions } from '../lib/request';
 import { DATE_FORMATS, FONTS, THEMES, parseWidgetOptions } from '../lib/widget';
 
 const { user: login } = Astro.params;
@@ -17,17 +17,13 @@ let history;
 let error: string | null = null;
 
 try {
-  history = await loadUserHistory(login, {
-    kv: env.CACHE,
-    waitUntil: Astro.locals.cfContext
-      ? (promise) => Astro.locals.cfContext!.waitUntil(promise)
-      : undefined,
-  });
+  history = await loadUserHistory(login, historyLoadOptions(Astro.locals));
 } catch (e) {
   error = e instanceof Error ? e.message : 'failed to load user';
 }
 
-const embeds = history ? embedUrls(origin, login, widget) : null;
+const canonicalLogin = history?.user.login ?? login;
+const embeds = history ? embedUrls(origin, canonicalLogin, widget) : null;
 ---
 
 <Base title={history ? `${history.user.login} — crates download history` : 'error'} theme={widget.theme}>
@@ -78,7 +74,7 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
         </form>
 
         <div class="border my-6">
-          <img id="preview" src={embeds.svgUrl} alt={`download history for ${login}`} width="800" height="320" class="block w-full h-auto" />
+          <img id="preview" src={embeds.svgUrl} alt={`download history for ${canonicalLogin}`} width="800" height="320" class="block w-full h-auto" />
         </div>
 
         <section class="mt-8">
@@ -101,7 +97,7 @@ const embeds = history ? embedUrls(origin, login, widget) : null;
           <pre class="p-4 overflow-x-auto whitespace-pre-wrap break-all" id="embed-svg">{embeds.svgUrl}</pre>
         </section>
 
-        <script define:vars={{ origin, login, initialWidget: widget }}>
+        <script define:vars={{ origin, login: canonicalLogin, initialWidget: widget }}>
           import { readWidgetOptionsFromForm, updateWidgetPreview } from '../lib/widget-page';
 
           const theme = document.getElementById('theme');

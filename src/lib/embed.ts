@@ -1,3 +1,4 @@
+import { escapeHtmlAttr } from './escape';
 import type { WidgetOptions } from './widget';
 import { buildWidgetQuery } from './widget';
 
@@ -15,7 +16,7 @@ export function embedUrls(origin: string, login: string, options: WidgetOptions)
     svgUrl,
     embedUrl,
     markdown: `[![crates.io download history](${svgUrl})](${cratesUrl})`,
-    html: `<a href="${cratesUrl}"><img src="${svgUrl}" alt="crates.io download history for ${login}" /></a>`,
+    html: `<a href="${cratesUrl}"><img src="${svgUrl}" alt="crates.io download history for ${escapeHtmlAttr(login)}" /></a>`,
     iframe: `<iframe src="${embedUrl}" width="820" height="360" frameborder="0"></iframe>`,
   };
 }

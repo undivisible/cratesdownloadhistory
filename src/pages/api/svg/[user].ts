@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
 import { loadUserHistory } from '../../../lib/history';
+import { historyLoadOptions } from '../../../lib/request';
 import { renderSvg, svgOptionsFromHistory } from '../../../lib/chart';
 import { parseWidgetOptions } from '../../../lib/widget';
 
@@ -15,10 +15,7 @@ export const GET: APIRoute = async ({ params, locals, request }) => {
   const widget = parseWidgetOptions(new URL(request.url).searchParams);
 
   try {
-    const history = await loadUserHistory(login, {
-      kv: env.CACHE,
-      waitUntil: locals.cfContext ? (promise) => locals.cfContext!.waitUntil(promise) : undefined,
-    });
+    const history = await loadUserHistory(login, historyLoadOptions(locals));
     const svg = renderSvg(history.points, svgOptionsFromHistory(history, widget));
 
     return new Response(svg, {

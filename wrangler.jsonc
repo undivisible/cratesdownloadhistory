@@ -13,7 +13,8 @@
 	},
 	"kv_namespaces": [
 		{
-			"binding": "CACHE"
+			"binding": "CACHE",
+			"id": "3d19cc86b7e644d9b11e7f522d376dcd"
 		}
 	],
 	"routes": [

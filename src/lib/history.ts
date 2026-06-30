@@ -8,6 +8,8 @@ import { aggregateDownloads } from './chart';
 import { getCachedHistory, setCachedHistory, slimHistory } from './cache';
 import type { CachedUserHistory, UserDownloadHistory } from './types';
 
+export const MAX_CRATES_FOR_CHART = 200;
+
 export interface LoadOptions {
   kv?: KVNamespace;
   waitUntil?: (promise: Promise<unknown>) => void;
@@ -26,7 +28,10 @@ async function buildHistory(login: string): Promise<UserDownloadHistory> {
     fetchUserCrates(user.id),
   ]);
 
-  const active = crates.filter((c) => c.downloads > 0);
+  const active = crates
+    .filter((c) => c.downloads > 0)
+    .sort((a, b) => b.downloads - a.downloads)
+    .slice(0, MAX_CRATES_FOR_CHART);
   const histories = active.length > 0 ? await fetchDownloadsForCrates(active) : [];
   const points = aggregateDownloads(histories, totalDownloads);
 
@@ -61,7 +66,7 @@ export async function loadUserHistory(
   }
 
   const history = await pending;
-  await setCachedHistory(key, slimHistory(history), options.kv);
+  await setCachedHistory(history.user.login.toLowerCase(), slimHistory(history), options.kv);
   return history;
 }
 
