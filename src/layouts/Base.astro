@@ -1,0 +1,126 @@
+---
+interface Props {
+  title: string;
+  minimal?: boolean;
+}
+
+const { title, minimal = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <style is:global>
+      :root {
+        color-scheme: light;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        background: #fff;
+        color: #000;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      a {
+        color: #000;
+      }
+
+      input,
+      button,
+      textarea {
+        font: inherit;
+        border: 1px solid #000;
+        background: #fff;
+        color: #000;
+        padding: 0.5rem 0.75rem;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      button:hover,
+      a:hover {
+        background: #000;
+        color: #fff;
+      }
+
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+      }
+
+      .mono {
+        font-family: inherit;
+      }
+
+      pre {
+        margin: 0;
+        padding: 1rem;
+        border: 1px solid #000;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      .stat {
+        display: inline-block;
+        margin-right: 1.5rem;
+      }
+
+      .chart {
+        border: 1px solid #000;
+        margin: 1.5rem 0;
+        width: 100%;
+      }
+
+      .section {
+        margin-top: 2rem;
+      }
+
+      h1,
+      h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0 0 1rem;
+        text-transform: lowercase;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+
+      form {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .error {
+        border: 1px solid #000;
+        padding: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    {
+      !minimal && (
+        <div class="wrap">
+          <slot />
+        </div>
+      )
+    }
+    {minimal && <slot />}
+  </body>
+</html>

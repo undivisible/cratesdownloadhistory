@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="crates download history">
+  <h1>crates download history</h1>
+  <p>total downloads over time for a crates.io user</p>
+
+  <form method="get" action="/" id="search">
+    <label for="user">crates.io user</label>
+    <input id="user" name="user" type="text" placeholder="alexcrichton" required />
+    <button type="submit">view</button>
+  </form>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get('user');
+    if (user) {
+      window.location.replace(`/${encodeURIComponent(user)}`);
+    }
+
+    document.getElementById('search')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const input = document.getElementById('user');
+      const value = input instanceof HTMLInputElement ? input.value.trim() : '';
+      if (value) window.location.href = `/${encodeURIComponent(value)}`;
+    });
+  </script>
+</Base>

@@ -1,0 +1,72 @@
+---
+export const prerender = false;
+
+import Base from '../layouts/Base.astro';
+import { loadUserHistory } from '../lib/history';
+import { renderSvg } from '../lib/chart';
+import { loadOptions } from '../lib/runtime';
+
+const { user: login } = Astro.params;
+if (!login) return Astro.redirect('/');
+
+const origin = new URL(Astro.request.url).origin;
+let history;
+let error: string | null = null;
+
+try {
+  history = await loadUserHistory(login, loadOptions(Astro.locals.cfContext));
+} catch (e) {
+  error = e instanceof Error ? e.message : 'failed to load user';
+}
+
+const svg = history ? renderSvg(history.points, { title: `${history.user.login} — ${history.totalDownloads.toLocaleString()} downloads` }) : '';
+const svgUrl = `${origin}/api/svg/${encodeURIComponent(login)}`;
+const pageUrl = `${origin}/${encodeURIComponent(login)}`;
+const embedUrl = `${origin}/embed/${encodeURIComponent(login)}`;
+
+const markdown = `[![crates.io download history](${svgUrl})](${pageUrl})`;
+const html = `<a href="${pageUrl}"><img src="${svgUrl}" alt="crates.io download history for ${login}" /></a>`;
+const iframe = `<iframe src="${embedUrl}" width="820" height="360" frameborder="0"></iframe>`;
+---
+
+<Base title={history ? `${history.user.login} — crates download history` : 'error'}>
+  {
+    error ? (
+      <div class="error">
+        <h1>error</h1>
+        <p>{error}</p>
+        <p><a href="/">back</a></p>
+      </div>
+    ) : history && (
+      <>
+        <h1>{history.user.login}</h1>
+        <p>
+          <span class="stat">{history.totalDownloads.toLocaleString()} downloads</span>
+          <span class="stat">{history.crateCount} crates</span>
+        </p>
+
+        <div class="chart" set:html={svg} />
+
+        <section class="section">
+          <h2>embed — markdown</h2>
+          <pre class="mono">{markdown}</pre>
+        </section>
+
+        <section class="section">
+          <h2>embed — html</h2>
+          <pre class="mono">{html}</pre>
+        </section>
+
+        <section class="section">
+          <h2>embed — iframe</h2>
+          <pre class="mono">{iframe}</pre>
+        </section>
+
+        <section class="section">
+          <h2>svg url</h2>
+          <pre class="mono">{svgUrl}</pre>
+        </section>
+      </>
+    )
+  }
+</Base>
