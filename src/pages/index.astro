@@ -1,5 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
+
+const user = Astro.url.searchParams.get('user')?.trim();
+if (user) return Astro.redirect(`/${encodeURIComponent(user)}`);
 ---
 
 <Base title="crates download history">
@@ -17,12 +20,6 @@ import Base from '../layouts/Base.astro';
   </form>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const user = params.get('user');
-    if (user) {
-      window.location.replace(`/${encodeURIComponent(user)}`);
-    }
-
     document.getElementById('search')?.addEventListener('submit', (event) => {
       event.preventDefault();
       const input = document.getElementById('user');
