@@ -103,7 +103,7 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
   const font = FONT_STACKS[options.font ?? 'mono'];
 
   const values = points.map((p) => (mode === 'cumulative' ? p.cumulative : p.daily));
-  const min = mode === 'cumulative' ? Math.min(...values) : 0;
+  const min = 0;
   const max = Math.max(...values, 1);
   const range = max - min || 1;
 
