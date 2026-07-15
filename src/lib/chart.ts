@@ -37,11 +37,46 @@ export function aggregateDownloads(
   return points;
 }
 
-function formatCount(n: number): string {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+function formatCount(n: number, step: number): string {
+  if (n >= 1_000_000_000) {
+    const v = n / 1_000_000_000;
+    const d = Math.max(1, Math.ceil(-Math.log10(step / 1_000_000_000)));
+    return `${Number.isInteger(v) ? v : v.toFixed(d)}B`;
+  }
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    const d = Math.max(1, Math.ceil(-Math.log10(step / 1_000_000)));
+    return `${Number.isInteger(v) ? v : v.toFixed(d)}M`;
+  }
+  if (n >= 1_000) {
+    const v = n / 1_000;
+    const d = Math.max(1, Math.ceil(-Math.log10(step / 1_000)));
+    return `${Number.isInteger(v) ? v : v.toFixed(d)}K`;
+  }
   return String(n);
+}
+
+function niceScale(
+  dataMin: number,
+  dataMax: number,
+  targetTicks: number,
+): { min: number; max: number; step: number; ticks: number } {
+  const range = dataMax - dataMin || 1;
+  const rawStep = range / targetTicks;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const normalized = rawStep / mag;
+  let niceStep: number;
+  if (normalized <= 1.5) niceStep = 1;
+  else if (normalized <= 3) niceStep = 2;
+  else if (normalized <= 7) niceStep = 5;
+  else niceStep = 10;
+  niceStep *= mag;
+
+  const niceMin = Math.floor(dataMin / niceStep) * niceStep;
+  const niceMax = Math.ceil(dataMax / niceStep) * niceStep;
+  const ticks = Math.round((niceMax - niceMin) / niceStep);
+
+  return { min: niceMin, max: niceMax, step: niceStep, ticks };
 }
 
 export function formatChartDate(iso: string, dateFormat: DateFormat): string {
@@ -103,8 +138,14 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
   const font = FONT_STACKS[options.font ?? 'mono'];
 
   const values = points.map((p) => (mode === 'cumulative' ? p.cumulative : p.daily));
-  const min = mode === 'cumulative' ? Math.min(...values) : 0;
-  const max = Math.max(...values, 1);
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values, 1);
+
+  const scale =
+    mode === 'cumulative'
+      ? niceScale(dataMin, dataMax, 4)
+      : { min: 0, max: dataMax, step: dataMax / 4, ticks: 4 };
+  const { min, max, step, ticks: yTicks } = scale;
   const range = max - min || 1;
 
   const x = (i: number) => pad.left + (i / Math.max(points.length - 1, 1)) * plotW;
@@ -114,13 +155,12 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(mode === 'cumulative' ? p.cumulative : p.daily).toFixed(1)}`)
     .join(' ');
 
-  const yTicks = 4;
   const yLabels = Array.from({ length: yTicks + 1 }, (_, i) => {
-    const value = min + (range * i) / yTicks;
+    const value = min + step * i;
     const yy = y(value);
     return `
       <line x1="${pad.left}" y1="${yy.toFixed(1)}" x2="${width - pad.right}" y2="${yy.toFixed(1)}" stroke="${theme.grid}" stroke-width="1"/>
-      <text x="${pad.left - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" fill="${theme.fg}" font-family="${font}" font-size="11">${formatCount(Math.round(value))}</text>
+      <text x="${pad.left - 8}" y="${(yy + 4).toFixed(1)}" text-anchor="end" fill="${theme.fg}" font-family="${font}" font-size="11">${formatCount(value, step)}</text>
     `;
   }).join('');
 
