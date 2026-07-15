@@ -56,27 +56,17 @@ function formatCount(n: number, step: number): string {
   return String(n);
 }
 
-function niceScale(
-  dataMin: number,
-  dataMax: number,
-  targetTicks: number,
-): { min: number; max: number; step: number; ticks: number } {
+function niceStep(dataMin: number, dataMax: number, targetTicks: number): number {
   const range = dataMax - dataMin || 1;
   const rawStep = range / targetTicks;
   const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
   const normalized = rawStep / mag;
-  let niceStep: number;
-  if (normalized <= 1.5) niceStep = 1;
-  else if (normalized <= 3) niceStep = 2;
-  else if (normalized <= 7) niceStep = 5;
-  else niceStep = 10;
-  niceStep *= mag;
-
-  const niceMin = Math.floor(dataMin / niceStep) * niceStep;
-  const niceMax = Math.ceil(dataMax / niceStep) * niceStep;
-  const ticks = Math.round((niceMax - niceMin) / niceStep);
-
-  return { min: niceMin, max: niceMax, step: niceStep, ticks };
+  let step: number;
+  if (normalized <= 1.5) step = 1;
+  else if (normalized <= 3) step = 2;
+  else if (normalized <= 7) step = 5;
+  else step = 10;
+  return step * mag;
 }
 
 export function formatChartDate(iso: string, dateFormat: DateFormat): string {
@@ -141,12 +131,23 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
   const dataMin = Math.min(...values);
   const dataMax = Math.max(...values, 1);
 
-  const scale =
-    mode === 'cumulative'
-      ? niceScale(dataMin, dataMax, 4)
-      : { min: 0, max: dataMax, step: dataMax / 4, ticks: 4 };
-  const { min, max, step, ticks: yTicks } = scale;
+  // Axis limits = data range (line fills full height)
+  const min = mode === 'cumulative' ? dataMin : 0;
+  const max = dataMax;
   const range = max - min || 1;
+
+  // Nice tick values within the data range
+  const step = mode === 'cumulative' ? niceStep(dataMin, dataMax, 4) : max / 4;
+  const firstTick = Math.ceil(min / step) * step;
+  const tickValues: number[] = [];
+  for (let v = firstTick; v <= max + step / 2; v += step) {
+    if (v >= min && v <= max) tickValues.push(v);
+  }
+  // ponytail: fallback when no nice ticks land in range (very narrow data)
+  if (tickValues.length < 2) {
+    tickValues.length = 0;
+    for (let i = 0; i <= 4; i++) tickValues.push(min + (range * i) / 4);
+  }
 
   const x = (i: number) => pad.left + (i / Math.max(points.length - 1, 1)) * plotW;
   const y = (v: number) => pad.top + plotH - ((v - min) / range) * plotH;
@@ -155,8 +156,7 @@ export function renderSvg(points: DownloadPoint[], options: SvgOptions = {}): st
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(mode === 'cumulative' ? p.cumulative : p.daily).toFixed(1)}`)
     .join(' ');
 
-  const yLabels = Array.from({ length: yTicks + 1 }, (_, i) => {
-    const value = min + step * i;
+  const yLabels = tickValues.map((value) => {
     const yy = y(value);
     return `
       <line x1="${pad.left}" y1="${yy.toFixed(1)}" x2="${width - pad.right}" y2="${yy.toFixed(1)}" stroke="${theme.grid}" stroke-width="1"/>
